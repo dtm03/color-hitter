@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableWithoutFeedback, StyleSheet, StatusBar } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, TouchableWithoutFeedback, StyleSheet, StatusBar} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Get Highscore right and implement correct color change and logic
 
 const styles = StyleSheet.create({
     container: {
@@ -39,21 +37,19 @@ export default function App() {
     const [intervalId, setIntervalId] = useState(null);
 
     const handleButtonPress = () => {
-        console.log('Button pressed');
         const id = setInterval(() => {
             changeColor(true);
-        }, 200); // Change color every 200 milliseconds
+        }, 200);
         setIntervalId(id);
     };
 
     const handleButtonRelease = () => {
-        console.log('Button released');
         clearInterval(intervalId);
         changeColor(false);
-        setTimeout(() => {
-            setScore(calculateScore());
+        setTimeout(async () => {
+            await calculateScore();
             startGame();
-        }, 1000);
+        }, 500);
     };
 
     const generateRandomColor = () => {
@@ -61,14 +57,11 @@ export default function App() {
     };
 
     const startGame = async () => {
-        if (score > highscore) {
-            await AsyncStorage.setItem('highscore', score.toString());
-        }
         const storedHighscore = await AsyncStorage.getItem('highscore');
-        setHighscore(parseInt(storedHighscore, 10) || 0);
+        const currentHighscore = parseInt(storedHighscore, 10) || 0;
+        setHighscore(currentHighscore);
         setBgColor(generateRandomColor());
         setBtnColor(generateRandomColor());
-        changeColor(false);
     };
 
     const changeColor = (shouldChange) => {
@@ -78,11 +71,21 @@ export default function App() {
     };
 
     const calculateScore = () => {
-        return score + 1;
+        setScore((prevScore) => {
+            const newScore = prevScore + 1;
+            if (newScore > highscore) {
+                AsyncStorage.setItem('highscore', newScore.toString());
+            }
+            return newScore;
+        });
     };
 
+    useEffect(() => {
+        startGame();
+    }, []);
+
     return (
-        <View style={[styles.container, { backgroundColor: bgColor }]}>
+        <View style={[styles.container, {backgroundColor: bgColor}]}>
             <View style={{alignItems: 'center'}}>
                 <Text style={styles.score}>Score: {score}</Text>
                 <Text style={styles.highScore}>Highscore: {highscore}</Text>

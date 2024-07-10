@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableWithoutFeedback, StyleSheet, StatusBar} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {waitFor} from "@babel/core/lib/gensync-utils/async";
 
 const styles = StyleSheet.create({
     container: {
@@ -36,20 +37,24 @@ export default function App() {
     const [highscore, setHighscore] = useState(0);
     const [intervalId, setIntervalId] = useState(null);
 
+    useEffect(() => {
+        startGame();
+    }, []);
+
     const handleButtonPress = () => {
         const id = setInterval(() => {
-            changeColor(true);
+            changeColor();
+            console.log('Color changed');
         }, 200);
         setIntervalId(id);
     };
 
     const handleButtonRelease = () => {
         clearInterval(intervalId);
-        changeColor(false);
         setTimeout(async () => {
             await calculateScore();
             startGame();
-        }, 500);
+        }, 1000);
     };
 
     const generateRandomColor = () => {
@@ -64,11 +69,32 @@ export default function App() {
         setBtnColor(generateRandomColor());
     };
 
-    const changeColor = (shouldChange) => {
-        if (shouldChange) {
-            setBtnColor(generateRandomColor());
-        }
+    // Utility function to convert hex color to RGB array
+    const hexToRgb = (hex) => {
+        let bigint = parseInt(hex.slice(1), 16);
+        return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
     };
+
+    // Utility function to convert RGB array to hex color
+    const rgbToHex = (rgb) => {
+        return '#' + rgb.map(x => ('0' + x.toString(16)).slice(-2)).join('');
+    };
+
+    const changeColor = () => {
+        // Assuming btnColor and bgColor are already defined and contain valid hex color strings
+        const buttonRGB = hexToRgb(btnColor); // Convert btnColor to RGB
+        const bgRGB = hexToRgb(bgColor);// Convert bgColor to RGB
+        const newButtonRGB = [0, 0, 0];
+        
+        for (let i = 0; i < 3; i++) {
+            newButtonRGB[i] = buttonRGB[i] - 10;
+        }
+
+        let newButtonColor = rgbToHex(newButtonRGB);
+        setBtnColor(newButtonColor);
+
+    };
+
 
     const calculateScore = () => {
         setScore((prevScore) => {
@@ -79,10 +105,6 @@ export default function App() {
             return newScore;
         });
     };
-
-    useEffect(() => {
-        startGame();
-    }, []);
 
     return (
         <View style={[styles.container, {backgroundColor: bgColor}]}>
